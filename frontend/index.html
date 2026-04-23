@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Explorer</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .upload { border: 2px dashed #ccc; padding: 2rem; text-align: center; border-radius: 8px; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+    th { background: #f5f5f5; }
+    #chart { margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>Data Explorer</h1>
+  <div class="upload">
+    <input type="file" id="fileInput" accept=".csv,.json" />
+    <button onclick="uploadFile()">Upload</button>
+  </div>
+  <div id="summary"></div>
+  <div id="preview"></div>
+  <div id="chart"></div>
+  <script>
+    async function uploadFile() {
+      const input = document.getElementById('fileInput');
+      if (!input.files.length) return;
+      const form = new FormData();
+      form.append('file', input.files[0]);
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const data = await res.json();
+      document.getElementById('summary').innerHTML = `<p>Uploaded: ${data.summary.rows} rows, ${data.summary.columns.length} columns</p>`;
+    }
+  </script>
+</body>
+</html>
