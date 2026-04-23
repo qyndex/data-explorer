@@ -1,8 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from app.services.data_service import DataService
+from app.services import shared_data_service as data_service
 
 router = APIRouter(tags=["upload"])
-data_service = DataService()
 
 
 @router.post("/upload")
