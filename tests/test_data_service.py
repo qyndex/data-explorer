@@ -43,7 +43,7 @@ class TestIngest:
 
     def test_ingest_stores_dataset_by_stem(self, data_service: DataService) -> None:
         data_service.ingest("cities.csv", CSV_BYTES)
-        assert "cities" in data_service.list_datasets()
+        assert "cities" in data_service.list_dataset_names()
 
     def test_ingest_overwrites_existing_dataset(self, data_service: DataService) -> None:
         data_service.ingest("cities.csv", CSV_BYTES)
@@ -61,17 +61,17 @@ class TestIngest:
 
 class TestListDatasets:
     def test_empty_initially(self, data_service: DataService) -> None:
-        assert data_service.list_datasets() == []
+        assert data_service.list_dataset_names() == []
 
     def test_lists_after_ingest(self, data_service: DataService) -> None:
         data_service.ingest("cities.csv", CSV_BYTES)
         data_service.ingest("points.json", JSON_BYTES)
-        names = data_service.list_datasets()
+        names = data_service.list_dataset_names()
         assert "cities" in names
         assert "points" in names
 
     def test_returns_list_type(self, data_service: DataService) -> None:
-        assert isinstance(data_service.list_datasets(), list)
+        assert isinstance(data_service.list_dataset_names(), list)
 
 
 # ---------------------------------------------------------------------------

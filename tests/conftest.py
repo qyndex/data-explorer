@@ -16,6 +16,21 @@ from fastapi.testclient import TestClient
 
 from app.routers import upload, visualize
 from app.services.data_service import DataService
+from app.services import shared_data_service
+
+
+# ---------------------------------------------------------------------------
+# Reset shared service state between tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _reset_shared_service():
+    """Clear in-memory datasets between tests so state doesn't leak."""
+    shared_data_service._datasets.clear()
+    shared_data_service._dataset_meta.clear()
+    yield
+    shared_data_service._datasets.clear()
+    shared_data_service._dataset_meta.clear()
 
 
 # ---------------------------------------------------------------------------

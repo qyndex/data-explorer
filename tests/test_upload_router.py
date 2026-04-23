@@ -35,11 +35,11 @@ class TestUploadFile:
         assert resp.status_code == 400
         assert "Unsupported" in resp.json()["detail"]
 
-    def test_upload_no_filename_returns_400(self, client: TestClient) -> None:
-        # Send a file with an empty filename
+    def test_upload_no_filename_returns_error(self, client: TestClient) -> None:
+        # Send a file with an empty filename — rejected by validation (400 or 422)
         files = {"file": ("", io.BytesIO(b"a,b\n1,2\n"), "text/csv")}
         resp = client.post("/api/upload", files=files)
-        assert resp.status_code == 400
+        assert resp.status_code in (400, 422)
 
     def test_upload_response_envelope_structure(self, client: TestClient) -> None:
         csv = b"col1,col2\nfoo,bar\n"

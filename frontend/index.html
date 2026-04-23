@@ -5,33 +5,257 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Data Explorer</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-    .upload { border: 2px dashed #ccc; padding: 2rem; text-align: center; border-radius: 8px; margin-bottom: 1rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
-    th { background: #f5f5f5; }
-    #chart { margin-top: 2rem; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #fafafa; color: #1a1a1a; }
+    h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; color: #333; }
+    p.subtitle { color: #666; margin-bottom: 1.5rem; }
+
+    /* Auth bar */
+    .auth-bar { display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; margin-bottom: 1rem; font-size: 0.875rem; }
+    .auth-bar input { padding: 0.375rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; }
+    .auth-bar button { padding: 0.375rem 0.75rem; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.875rem; }
+    .auth-bar button:hover { background: #f0f0f0; }
+    .auth-bar .user-info { color: #4a7; font-weight: 500; }
+
+    /* Upload area */
+    .upload { border: 2px dashed #ccc; padding: 2rem; text-align: center; border-radius: 8px; margin-bottom: 1.5rem; background: #fff; transition: border-color 0.2s; }
+    .upload:hover { border-color: #888; }
+    .upload input[type="file"] { margin-bottom: 0.75rem; }
+    .upload button { padding: 0.5rem 1.5rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    .upload button:hover { background: #1d4ed8; }
+
+    /* Cards */
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .card h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+
+    /* Dataset list */
+    .dataset-list { display: grid; gap: 0.5rem; }
+    .dataset-item { padding: 0.75rem 1rem; background: #fff; border: 1px solid #e5e5e5; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s; }
+    .dataset-item:hover { background: #f0f7ff; border-color: #2563eb; }
+    .dataset-item .name { font-weight: 500; }
+    .dataset-item .meta { font-size: 0.8rem; color: #888; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.875rem; }
+    th, td { border: 1px solid #e5e5e5; padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: #f5f5f5; font-weight: 600; position: sticky; top: 0; }
+    .table-wrap { max-height: 400px; overflow: auto; border-radius: 6px; border: 1px solid #e5e5e5; }
+    .table-wrap table { border: none; }
+
+    /* Chart controls */
+    .chart-controls { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .chart-controls select, .chart-controls input { padding: 0.375rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; }
+    .chart-controls button { padding: 0.375rem 1rem; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+
+    /* Export buttons */
+    .export-bar { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    .export-bar button { padding: 0.375rem 1rem; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.875rem; }
+    .export-bar button:hover { background: #f0f0f0; }
+
+    #chart { margin-top: 1rem; }
+    .message { padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
+    .message.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .message.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
+  <div class="auth-bar" id="authBar">
+    <div id="authForm">
+      <input type="email" id="authEmail" placeholder="Email" value="demo@data-explorer.local" />
+      <input type="password" id="authPassword" placeholder="Password" value="demo-password-123" />
+      <button onclick="signIn()">Sign In</button>
+    </div>
+    <div id="userInfo" class="hidden">
+      <span class="user-info" id="userEmail"></span>
+      <button onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+
   <h1>Data Explorer</h1>
+  <p class="subtitle">Upload, explore, query, and visualize your data</p>
+
+  <div id="message"></div>
+
   <div class="upload">
     <input type="file" id="fileInput" accept=".csv,.json" />
-    <button onclick="uploadFile()">Upload</button>
+    <br />
+    <button onclick="uploadFile()">Upload Dataset</button>
   </div>
-  <div id="summary"></div>
-  <div id="preview"></div>
-  <div id="chart"></div>
+
+  <h2>Datasets</h2>
+  <div class="dataset-list" id="datasetList">
+    <p style="color: #888; padding: 0.5rem;">No datasets yet. Upload a CSV or JSON file to get started.</p>
+  </div>
+
+  <div id="datasetDetail" class="hidden">
+    <h2>Preview: <span id="previewName"></span></h2>
+    <div class="table-wrap" id="previewTable"></div>
+
+    <div class="export-bar">
+      <button onclick="exportData('csv')">Export CSV</button>
+      <button onclick="exportData('json')">Export JSON</button>
+    </div>
+
+    <h2>Visualize</h2>
+    <div class="chart-controls">
+      <select id="chartType">
+        <option value="bar">Bar Chart</option>
+        <option value="line">Line Chart</option>
+        <option value="scatter">Scatter Plot</option>
+      </select>
+      <input type="text" id="xAxis" placeholder="X column" />
+      <input type="text" id="yAxis" placeholder="Y column" />
+      <button onclick="visualize()">Generate Chart</button>
+    </div>
+    <div id="chart"></div>
+  </div>
+
   <script>
+    let token = null;
+    let currentDataset = null;
+
+    function headers() {
+      const h = { 'Content-Type': 'application/json' };
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      return h;
+    }
+
+    function showMessage(text, type) {
+      const el = document.getElementById('message');
+      el.className = 'message ' + type;
+      el.textContent = text;
+      setTimeout(() => { el.className = ''; el.textContent = ''; }, 4000);
+    }
+
+    // Auth
+    async function signIn() {
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+      try {
+        const res = await fetch('/api/auth/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!res.ok) { showMessage('Sign in failed', 'error'); return; }
+        const data = await res.json();
+        token = data.access_token;
+        document.getElementById('authForm').classList.add('hidden');
+        document.getElementById('userInfo').classList.remove('hidden');
+        document.getElementById('userEmail').textContent = data.email;
+        showMessage('Signed in successfully', 'success');
+        loadDatasets();
+      } catch (e) { showMessage('Sign in error: ' + e.message, 'error'); }
+    }
+
+    function signOut() {
+      token = null;
+      document.getElementById('authForm').classList.remove('hidden');
+      document.getElementById('userInfo').classList.add('hidden');
+      showMessage('Signed out', 'success');
+      loadDatasets();
+    }
+
+    // Upload
     async function uploadFile() {
       const input = document.getElementById('fileInput');
-      if (!input.files.length) return;
+      if (!input.files.length) { showMessage('Select a file first', 'error'); return; }
       const form = new FormData();
       form.append('file', input.files[0]);
-      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const h = {};
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      const res = await fetch('/api/upload', { method: 'POST', body: form, headers: h });
+      if (!res.ok) { showMessage('Upload failed', 'error'); return; }
       const data = await res.json();
-      document.getElementById('summary').innerHTML = `<p>Uploaded: ${data.summary.rows} rows, ${data.summary.columns.length} columns</p>`;
+      showMessage(`Uploaded: ${data.summary.rows} rows, ${data.summary.columns.length} columns`, 'success');
+      input.value = '';
+      loadDatasets();
     }
+
+    // Datasets
+    async function loadDatasets() {
+      const h = {};
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      const res = await fetch('/api/datasets', { headers: h });
+      const data = await res.json();
+      const list = document.getElementById('datasetList');
+      const datasets = data.datasets;
+      if (!datasets.length) {
+        list.innerHTML = '<p style="color: #888; padding: 0.5rem;">No datasets yet. Upload a CSV or JSON file.</p>';
+        return;
+      }
+      list.innerHTML = datasets.map(d => {
+        const name = typeof d === 'string' ? d : d.name;
+        const desc = (typeof d === 'object' && d.description) ? d.description : '';
+        const rows = (typeof d === 'object' && d.row_count) ? d.row_count + ' rows' : '';
+        return `<div class="dataset-item" onclick="selectDataset('${name}')">
+          <span class="name">${name}</span>
+          <span class="meta">${[desc, rows].filter(Boolean).join(' | ')}</span>
+        </div>`;
+      }).join('');
+    }
+
+    async function selectDataset(name) {
+      currentDataset = name;
+      document.getElementById('previewName').textContent = name;
+      document.getElementById('datasetDetail').classList.remove('hidden');
+      // Load preview
+      const res = await fetch('/api/datasets/' + name + '/preview?rows=20');
+      if (!res.ok) { showMessage('Preview failed', 'error'); return; }
+      const data = await res.json();
+      renderTable(data.data);
+      // Auto-fill axis inputs
+      if (data.data.length > 0) {
+        const cols = Object.keys(data.data[0]);
+        document.getElementById('xAxis').value = cols[0] || '';
+        document.getElementById('yAxis').value = cols[1] || '';
+      }
+    }
+
+    function renderTable(rows) {
+      if (!rows || !rows.length) { document.getElementById('previewTable').innerHTML = '<p>No data</p>'; return; }
+      const cols = Object.keys(rows[0]);
+      let html = '<table><thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      rows.forEach(r => {
+        html += '<tr>' + cols.map(c => `<td>${r[c] != null ? r[c] : ''}</td>`).join('') + '</tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('previewTable').innerHTML = html;
+    }
+
+    // Visualize
+    async function visualize() {
+      if (!currentDataset) return;
+      const chartType = document.getElementById('chartType').value;
+      const x = document.getElementById('xAxis').value;
+      const y = document.getElementById('yAxis').value;
+      const params = new URLSearchParams({ chart_type: chartType, x, y });
+      const res = await fetch('/api/visualize/' + currentDataset + '?' + params);
+      if (!res.ok) { showMessage('Chart generation failed', 'error'); return; }
+      const data = await res.json();
+      document.getElementById('chart').innerHTML = data.chart_html;
+    }
+
+    // Export
+    async function exportData(fmt) {
+      if (!currentDataset) return;
+      const res = await fetch('/api/export/' + currentDataset + '?format=' + fmt);
+      if (!res.ok) { showMessage('Export failed', 'error'); return; }
+      const data = await res.json();
+      const blob = new Blob([data.data], { type: fmt === 'json' ? 'application/json' : 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentDataset + '.' + fmt;
+      a.click();
+      URL.revokeObjectURL(url);
+      showMessage('Downloaded ' + currentDataset + '.' + fmt, 'success');
+    }
+
+    // Initial load
+    loadDatasets();
   </script>
 </body>
 </html>
